@@ -1,22 +1,22 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PlusCircle } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { type Team, useTimer } from '../Providers/Timer.tsx';
-import { Switch } from '@/components/ui/switch.tsx';
+
 import { useGlobals } from '@/Providers/Globals.tsx';
-import { useAlert } from '@/Providers/Alerts.tsx';
 const MAXTEAMS = 20;
 const Teams: React.FC = () => {
     const [teams, setTeams] = React.useState<Team[]>(Array.from({ length: MAXTEAMS }, () => ({ name: '', baseTime: 0, state: 'ready', timeLeft: 0 })));
     const [numberOfTeams, setNumberOfTeams] = React.useState(5);
     const [timeInput, setTimeInput] = React.useState('00:30:00');
     const { token } = useGlobals();
+    const [showSessionInput, setShowSessionInput] = React.useState(false);
     const Navigate = useNavigate();
     const { setTeams: setGlobalTeams } = useTimer();
-    const { useToast } = useAlert();
+
     const updateSavedConfig = (part: 'time' | 'team' | 'numberOfTeams') => {
         const savedConfig = localStorage.getItem('savedConfig');
         if (savedConfig) {
@@ -79,11 +79,12 @@ const Teams: React.FC = () => {
         setGlobalTeams(newTeams);
         return newTeams;
     }
+    const btnClass = 'w-43 bg-[#4C6F50] text-white hover:bg-[#3e5c40]  justify-between items-center flex h-12';
     return (
-        <div className='min-h-screen flex flex-col items-center justify-start  w-screen p-4 font-inter'>
+        <div className='h-full flex flex-col items-center justify-start  w-screen p-4 font-inter'>
             <Card className='p-4 mt-4 w-full max-w-4xl items-center'>
                 <img className='w-32' src="/logo-nobg.png" alt="Team" />
-                <div className='flex gap-8  w-full justify-center items-center'>
+                {/* <div className='flex gap-8  w-full justify-center items-center'>
                     <div className='flex gap-2 items-center text-xl'>
                         <span className='font-lato'> Número de equipes: </span>
                         <Input type="number" value={numberOfTeams}
@@ -114,7 +115,7 @@ const Teams: React.FC = () => {
                     <Button className=' bg-[#4C6F50] text-white hover:bg-[#3e5c40] w-32 text-xl justify-center items-center'
                         onClick={() => {
                             configureAndSetTeams();
-                            useToast('success', 'Equipes configuradas!');
+                            toast.success("Equipes configuradas!");
                             const start = (document.getElementById('countdowntoggle') as HTMLButtonElement).ariaChecked;
                             Navigate('/chrono' + (start === 'true' ? '?start=true' : ''));
                         }}
@@ -141,15 +142,75 @@ const Teams: React.FC = () => {
                                 </div>
                             </Card>
                         ))}
-                </Card>
+                </Card> */}
+                <div className='flex flex-col items-center'>
+                    <Button className={`${btnClass}`}
+                        onClick={() => {
+                            Navigate('/teams');
+                        }}
+                    >
+                        Start
+                        <ArrowRight className='ml-2' />
+                    </Button>
+                    <span className='text-sm text-muted-foreground mt-2'>
+                        <i>Create a local run (Works offline)</i>
+                    </span>
+                </div>
+                <div className='flex flex-col items-center'>
+                    <Button disabled={!token} className={`${btnClass}`}
+                        onClick={() => {
+                            Navigate('/teams');
+                        }}>
+                        Create Session
+                        <PlusCircle className='ml-2' size={120} />
+                    </Button>
+                    <span className='text-sm text-muted-foreground mt-2'>
+                        <i>Share a session link with your team! (only you can control it)</i>
+                    </span>
+                </div>
+                <div className='flex flex-col items-center'
+                    style={{
+                        display: showSessionInput ? 'none' : 'flex',
+                    }}
+                >
+                    <Button disabled={!token} className={`${btnClass}`} onClick={() => setShowSessionInput(!showSessionInput)}
 
+                    >
+
+                        Join Session
+                        <ArrowRight size={40} />
+                    </Button >
+                    <span className='text-sm text-muted-foreground mt-2'>
+                        <i>Join an existing session </i>
+                    </span>
+                </div>
+                <div
+                    style={{
+                        display: showSessionInput ? 'flex' : 'none',
+                    }}
+                    className='flex flex-col items-center'
+                >
+                    <div className='flex flex-row items-center gap-2 justify-center'>
+                        <Input type="text" placeholder="Enter session ID to join" className='w-1/2 text-center' id='session-id-input' />
+                        <Button disabled={!token} className={`${btnClass} w-20 h-9`}
+                            onClick={() => {
+                                Navigate('/session?sessionId=' + (document.getElementById('session-id-input') as HTMLInputElement).value);
+                            }}
+                        >
+                            Join
+                            <ArrowRight size={40} />
+                        </Button>
+                    </div>
+                    <span className='text-sm text-muted-foreground mt-2'>
+                        <i>Enter the session ID provided by the session host</i>
+                    </span>
+                </div>
             </Card>
-            <Button className='mt-4 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white'
+            {/* <Button className='mt-4 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-black dark:text-white'
                 disabled={!token}
                 onClick={() => {
                     const t = configureAndSetTeams();
                     const baseTime = t[0]?.baseTime || 0;
-                    console.log('Creating session with with token:', token);
                     fetch('http://localhost:4500/api/newsession', {
                         method: 'POST',
                         headers: {
@@ -165,14 +226,15 @@ const Teams: React.FC = () => {
                         Navigate('/session?sessionId=' + data.sessionId);
                     }).catch(err => {
                         console.error('Error creating session:', err);
-                        useToast('error', 'Error creating session: ' + err.message);
+                        toast.error('Error creating session: ' + err.message);
                     });
                 }}>
                 create session
                 <ArrowRight className='ml-2' />
 
-            </Button>
+            </Button> */}
         </div>
+
     );
 };
 
